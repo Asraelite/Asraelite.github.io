@@ -1,39 +1,72 @@
 window.addEventListener('load', _ => {
-	SINTER.game = new SINTER.Game();
-	SINTER.game.init();
+	SR.game = new SR.Game();
+	SR.game.init();
 });
 
-window.SINTER = {};
+SR = {};
 
-SINTER.Game = class Game {
+SR.constants = {
+	snakeSpeed: 0.5,
+	mouseSpeed: 1,
+	worldWidth: 20,
+	worldHeight: 20
+};
+
+SR.assets = {
+	mouse: 'Greedy_Mouse.png',
+	bourbon: 'bourbon.png'
+};
+
+SR.Game = class Game {
 	constructor() {
-		this.state = {
-			state: 'initialising',
-			get ingame() {
-				return state == 'playing' || state == 'paused';
-			}
+		this.graphics = new SR.Graphics();
+		this.world = new SR.World();
+
+		this.input = {
+			mouse: { pressed: {}, held: {} },
+			keyCode: { pressed: {}, held: {} },
+			key: { pressed: {}, held: {} }
 		};
 
-		this.consts = SINTER.consts;
+		['keydown', 'keyup', 'mousedown', 'mouseup'].forEach(e => {
+			window.addEventListener(e, ((event) => {
+				let updateInput = (object, value, pressed) => {
+					object.pressed[value] = pressed && !object.held[value];
+					object.held[value] = pressed;
+				};
 
-		this.graphics = new SINTER.Graphics(this);
-		this.world = new SINTER.World(this);
-		this.gameplay = new SINTER.Gameplay(this);
-		this.input = new SINTER.Input();
+				let pressed = ['mousedown', 'keydown'].includes(event.type);
+				if (['mousedown', 'mouseup'].includes(event.type)) {
+					updateInput(this.input.mouse, event.button, pressed);
+				} else {
+					updateInput(this.input.keyCode, event.code, pressed);
+					updateInput(this.input.key, event.key, pressed);
+				}
+			}).bind(this));
+		});
 	}
 
 	init() {
-		this.world.generate({ x: 0, y: 0 });
-		this.gameplay.startAdventure();
+		this.world.spawnPlayer('snake', new SR.Controller('wasd'));
+		this.world.spawnPlayer('mouse', new SR.Controller('arrows'));
 
-		this.tick();
+		let imagesToLoad = 0;
+
+		for (let a in SR.assets) {
+			let src = SR.assets[a];
+			SR.assets[a] = new Image();
+			SR.assets[a].src = src;
+			imagesToLoad++;
+			SR.assets[a].addEventListener('load', (_ => {
+				if (!--imagesToLoad) this.tick();
+			}).bind(this));
+		}
 	}
 
 	tick() {
-		this.gameplay.tick();
 		this.world.tick();
 		this.graphics.render();
 
-		requestAnimationFrame(this.tick.bind(this));
+		window.requestAnimationFrame(this.tick.bind(this));
 	}
 };

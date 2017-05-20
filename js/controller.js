@@ -1,53 +1,82 @@
-SINTER.EntityController = class EntityController {
-	constructor(game, entity, type) {
-		this.game = game;
-		this.world = game.world;
-		this.input = game.input;
+SR.Controller = class Controller {
+	constructor(type) {
+		this.mapping = {
+			wasd: {
+				up: 'w',
+				down: 's',
+				left: 'a',
+				right: 'd'
+			},
+			arrows: {
+				up: 'ArrowUp',
+				down: 'ArrowDown',
+				left: 'ArrowLeft',
+				right: 'ArrowRight'
+			}
+		}[type];
+
+		this.cooldown = 0;
+	}
+
+	bindEntity(entity) {
+		entity.controller = this;
 		this.entity = entity;
+	}
 
-		if (type == 'player') {
-			this.tick = this.keyboardInput;
-		} else if (type == 'ai') {
-			this.ai = new SINTER.Ai(this.entity);
-			this.tick = this.ai.tick.bind(this.ai);
-		} else {
-			this.tick = _ => {};
+	control() {
+		if (!this.entity)
+			throw new Error('Attempt to control null entity');
+
+		if (--this.cooldown > 0) return;
+
+		if (this.entity.type == 'mouse')
+			this.controlMouse();
+
+		if (this.entity.type == 'snake')
+			this.controlSnake();
+	}
+
+	controlMouse() {
+		let held = SR.game.input.key.held;
+
+		if (held[this.mapping.up]) {
+			this.entity.y -= 1;
+			this.cooldown = 4;
+		}
+
+		if (held[this.mapping.down]) {
+			this.entity.y += 1;
+			this.cooldown = 4;
+		}
+
+		if (held[this.mapping.left]) {
+			this.entity.x -= 1;
+			this.cooldown = 4;
+		}
+
+		if (held[this.mapping.right]) {
+			this.entity.x += 1;
+			this.cooldown = 4;
 		}
 	}
 
-	keyboardInput() {
-		let input = this.input;
-		if (input.keyCode.held['KeyD'])
-			this.entity.inputAction('right');
-		if (input.keyCode.held['KeyA'])
-			this.entity.inputAction('left');
-		if (input.keyCode.held['KeyW'])
-			this.entity.inputAction('jump');
-	}
-}
+	controlSnake() {
+		let held = SR.game.input.key.held;
 
-SINTER.Input = class Input {
-	constructor() {
-		['keydown', 'keyup', 'mousedown', 'mouseup'].forEach(e =>
-			window.addEventListener(e, this.processEvent.bind(this)));
+		if (held[this.mapping.up]) {
+			this.entity.direction = [0, -1];
+		}
 
-		this.mouse = { pressed: {}, held: {} };
-		this.keyCode = { pressed: {}, held: {} };
-		this.key = { pressed: {}, held: {} };
-	}
+		if (held[this.mapping.down]) {
+			this.entity.direction = [0, 1];
+		}
 
-	processEvent(event) {
-		let updateInput = (object, value, pressed) => {
-			object.pressed[value] = pressed && !object.held[value];
-			object.held[value] = pressed;
-		};
+		if (held[this.mapping.left]) {
+			this.entity.direction = [-1, 0];
+		}
 
-		let pressed = ['mousedown', 'keydown'].includes(event.type);
-		if (['mousedown', 'mouseup'].includes(event.type)) {
-			updateInput(this.mouse, event.button, pressed);
-		} else {
-			updateInput(this.keyCode, event.code, pressed);
-			updateInput(this.key, event.key, pressed);
+		if (held[this.mapping.right]) {
+			this.entity.direction = [1, 0];
 		}
 	}
-}
+};
