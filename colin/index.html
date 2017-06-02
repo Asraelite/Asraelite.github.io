@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+	<script>
+		window.addEventListener('load', _ => {
+			document.getElementsByTagName('input')[0].addEventListener('change', i => {
+				let fr = new FileReader();
+				fr.onload = e => {
+					let res = encodeURIComponent(e.target.result.split('\n').filter(l => {
+						return parseFloat(l.trim().split(' ').pop()) > 0;
+					}).join('\n'));
+					let el = document.createElement('a');
+					el.setAttribute('href', 'data:text/plain;charset=utf-8,' + res);
+					el.setAttribute('download', 'output.txt');
+					document.body.appendChild(el);
+					el.click();
+				};
+				fr.readAsText(document.getElementById('input').files[0]);
+			});
+		});
+	</script>
+	<style>
+		a {
+			display: none;
+		}
+	</style>
+</head>
+<body>
+	<input type="file" id="input">
+</body>
+</html>
